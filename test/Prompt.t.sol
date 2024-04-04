@@ -32,12 +32,20 @@ contract PromptTest is Test, OraSepoliaAddresses {
         bytes callbackData
     );
 
-    Prompt public prompt;
-    AIOracle public aiOracle;
-    uint256 public modelId;
-    string public input;
-    string public sepoliaRpc;
-    uint256 public forkId;
+    event promptsUpdated(
+        uint256 requestId,
+        uint256 modelId,
+        string input,
+        string output,
+        bytes callbackData
+    );
+
+    Prompt prompt;
+    AIOracle aiOracle;
+    uint256 modelId;
+    string input;
+    string sepoliaRpc;
+    uint256 forkId;
 
     function setUp() public {
         sepoliaRpc = vm.envString("SEPOLIA_RPC");
@@ -45,12 +53,33 @@ contract PromptTest is Test, OraSepoliaAddresses {
 
         prompt = new Prompt(AIOracle(OAO_PROXY));
         modelId = 11; //llama
-        input = "Tell me how to prepare eggs";
+        input = "What is a good use case for on-chain AI?";
     }
 
     function test_OAOInteraction() public {
-        vm.expectEmit(true, true, false, false);
+        vm.expectEmit(false, false, false, false);
+        //check if requestCallback method is executed
         emit promptRequest(3355, address(this), modelId, input);
+        //check if OPML node called aiOracleCallback method
+        emit promptsUpdated(3355, modelId, input, "", "");
         prompt.calculateAIResult{value: prompt.estimateFee(11)}(modelId, input);
+
+        // (,,bytes memory request_input,) = prompt.requests(3357);
+        // string memory output = prompt.getAIResult(modelId, string(request_input));
+        // assertNotEq(output, "");
+        // console.log(output);
+    }
+
+    function test_CallbackGasLimit() public {
+        uint64 oldLimit = prompt.callbackGasLimit(modelId);
+        assertEq(oldLimit, 5_000_000);
+        vm.expectRevert("Only owner");
+        vm.prank(address(123));
+        prompt.setCallbackGasLimit(modelId, 3_000_000);
+        vm.stopPrank();
+
+        prompt.setCallbackGasLimit(modelId, 3_000_000);
+        uint64 newLimit = prompt.callbackGasLimit(modelId);
+        assertEq(newLimit, 3_000_000);   
     }
 }
