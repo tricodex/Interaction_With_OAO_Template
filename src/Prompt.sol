@@ -1,13 +1,14 @@
-// SampleContract.sol
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "./interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiver.sol";
 
-// this contract is for ai.ora.io website
+/// @notice User interfacing contract that interacts with OAO
+/// @author ora.io
+/// @dev Prompt contract ingerits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
 contract Prompt is AIOracleCallbackReceiver {
-
+    
     event promptsUpdated(
         uint256 requestId,
         uint256 modelId,
@@ -37,10 +38,10 @@ contract Prompt is AIOracleCallbackReceiver {
         _;
     }
 
-    // requestId => AIOracleRequest
+    /// @dev requestId => AIOracleRequest
     mapping(uint256 => AIOracleRequest) public requests;
 
-    // modelId => callback gasLimit
+    /// @dev modelId => callback gasLimit
     mapping(uint256 => uint64) public callbackGasLimit;
 
     /// @notice Initialize the contract, binding it to a specified AIOracle.
@@ -51,31 +52,40 @@ contract Prompt is AIOracleCallbackReceiver {
         callbackGasLimit[9] = 5_000_000; // grok
     }
 
+    /// @notice sets the callback gas limit for a model
+    /// @dev only only can set the gas limit
     function setCallbackGasLimit(uint256 modelId, uint64 gasLimit) external onlyOwner {
         callbackGasLimit[modelId] = gasLimit;
     }
 
-    // uint256: modelID => (string: prompt => string: output)
+    /// @dev uint256: modelID => (string: prompt => string: output)
     mapping(uint256 => mapping(string => string)) public prompts;
 
+    /// @notice returns the output for a specific model and prompt
     function getAIResult(uint256 modelId, string calldata prompt) external view returns (string memory) {
         return prompts[modelId][prompt];
     }
 
-    // the callback function, only the AI Oracle can call this function
+    /// @notice OAO executes this method after it finishes with computation
+    /// @param requestId requestId 
+    /// @param output result of the OAO computation
+    /// @param callbackData optional data that is executed in the callback
     function aiOracleCallback(uint256 requestId, bytes calldata output, bytes calldata callbackData) external override onlyAIOracleCallback() {
         // since we do not set the callbackData in this example, the callbackData should be empty
         AIOracleRequest storage request = requests[requestId];
-        require(request.sender != address(0), "request not exists");
+        require(request.sender != address(0), "request does not exist");
         request.output = output;
         prompts[request.modelId][string(request.input)] = string(output);
         emit promptsUpdated(requestId, request.modelId, string(request.input), string(output), callbackData);
     }
 
+    /// @notice estimating fee that is spent by OAO
     function estimateFee(uint256 modelId) public view returns (uint256) {
         return aiOracle.estimateFee(modelId, callbackGasLimit[modelId]);
     }
 
+    /// @notice main point of interaction with OAO
+    /// @dev aiOracle.requestCallback sends request to OAO
     function calculateAIResult(uint256 modelId, string calldata prompt) payable external {
         bytes memory input = bytes(prompt);
         // we do not need to set the callbackData in this example
