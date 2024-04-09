@@ -3,4 +3,7 @@ pragma solidity ^0.8.13;
 
 abstract contract OraSepoliaAddresses {
     address internal OAO_PROXY = 0x0A0f4321214BB6C7811dD8a71cF587bdaF03f0A0;
+    uint8 internal STABLE_DIFUSION_ID = 50;
+    uint8 internal LLAMA_ID = 11;
+    uint8 internal GROK_ID = 9;
 }

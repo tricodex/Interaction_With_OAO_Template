@@ -6,7 +6,7 @@ import "./AIOracleCallbackReceiver.sol";
 
 /// @notice User interfacing contract that interacts with OAO
 /// @author ora.io
-/// @dev Prompt contract ingerits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
+/// @dev Prompt contract inherits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
 contract Prompt is AIOracleCallbackReceiver {
     
     event promptsUpdated(
