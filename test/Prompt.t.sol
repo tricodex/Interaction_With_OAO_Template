@@ -89,4 +89,15 @@ contract PromptTest is Test, OraSepoliaAddresses {
         assertEq(prompt, "What is a good use case for on-chain AI?");
         assertEq(string(output), "");
     }
+
+    function test_OAOCallback() public {
+        vm.expectRevert(); //TODO: add revert information
+        prompt.aiOracleCallback(3847, "test", "");
+
+        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(11)}(11, "What is a good use case for on-chain AI?");
+
+        vm.startPrank(OAO_PROXY);
+        prompt.aiOracleCallback(requestId, "test", "");
+        vm.stopPrank();
+    }
 }
