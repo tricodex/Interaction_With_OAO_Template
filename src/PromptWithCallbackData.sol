@@ -4,8 +4,9 @@ pragma solidity ^0.8.9;
 
 import "./interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiver.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-contract PromptWithCallbackData is AIOracleCallbackReceiver {
+contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
 
     event promptsUpdated(
         uint256 requestId,
@@ -29,12 +30,22 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver {
         bytes output;
     }
 
-    address owner;
+    struct TokenMetadata {
+        string image; //CID of the image on ipfs
+        string prompt;
+    }
+
+    address public owner;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner");
         _;
     }
+
+    uint256 private nextTokenId;
+
+    // tokenId => metamdata
+    mapping(uint256 => TokenMetadata) public metadataStorage;
 
     // requestId => AIOracleRequest
     mapping(uint256 => AIOracleRequest) public requests;
@@ -43,7 +54,7 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver {
     mapping(uint256 => uint64) public callbackGasLimit;
 
     /// @notice Initialize the contract, binding it to a specified AIOracle.
-    constructor(IAIOracle _aiOracle) AIOracleCallbackReceiver(_aiOracle) {
+    constructor(IAIOracle _aiOracle) AIOracleCallbackReceiver(_aiOracle) ERC721("On-chain AI Oracle", "OAO"){
         owner = msg.sender;
         callbackGasLimit[50] = 500_000; // SD 500k
         callbackGasLimit[11] = 5_000_000; // llama
@@ -66,9 +77,9 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver {
         require(request.sender != address(0), "request not exists");
         request.output = output;
         prompts[request.modelId][string(request.input)] = string(output);
-
-        uint256 callbackInt = abi.decode(callbackData, (uint256));
-        require(callbackInt != 0, "Returned Int can't be 0");
+        
+        uint256 tokenId = abi.decode(callbackData, (uint256));
+        metadataStorage[tokenId].image = string(output);
 
         emit promptsUpdated(requestId, request.modelId, string(request.input), string(output), callbackData);
     }
@@ -77,15 +88,33 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver {
         return aiOracle.estimateFee(modelId, callbackGasLimit[modelId]);
     }
 
-    function calculateAIResult(uint256 modelId, string calldata prompt, uint256 callbackInt) payable external {
+    /// @notice minting a token without metadata
+    /// @dev called when ineracting with OAO
+    function mint() internal {
+        nextTokenId++;
+        _safeMint(msg.sender, nextTokenId);
+    }
+
+    function updateResult(uint256 requestId) external {
+        aiOracle.updateResult(requestId);
+    }
+
+    function calculateAIResult(uint256 modelId, string calldata prompt) payable external returns (uint256, uint256) {
         bytes memory input = bytes(prompt);
+        mint();
+
+        metadataStorage[nextTokenId].prompt = prompt;
+
         uint256 requestId = aiOracle.requestCallback{value: msg.value}(
-            modelId, input, address(this), callbackGasLimit[modelId], abi.encode(callbackInt)
+            modelId, input, address(this), callbackGasLimit[modelId], abi.encode(nextTokenId)
         );
+        
         AIOracleRequest storage request = requests[requestId];
         request.input = input;
         request.sender = msg.sender;
         request.modelId = modelId;
+
         emit promptRequest(requestId, msg.sender, modelId, prompt);
+        return (requestId, nextTokenId);
     }
 }

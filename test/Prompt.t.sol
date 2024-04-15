@@ -14,9 +14,9 @@ import "forge-std/console.sol";
     - revert if not owner
     - check the state change after the update
  * 3. test OAO request
-    - check if PromptRequest is emmited
+    - check if PromptRequest is emitted
     - check the event data
-    - check state updates (access the request variable and check values)
+    - check state updates (access the requests variable and check values)
  * 4. check if aiOracleCallback is called
     - need to wait few blocks for the OPML to finish computation
     - mock the output and call method directly
@@ -83,10 +83,10 @@ contract PromptTest is Test, OraSepoliaAddresses {
         emit promptRequest(3847, address(this), 11,  "What is a good use case for on-chain AI?");
         uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(11)}(11, "What is a good use case for on-chain AI?");
         
-        (address sender, uint256 modelId, bytes memory prompt, bytes memory output) = prompt.requests(requestId);
+        (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
         assertEq(modelId, 11);
         assertEq(sender, address(this));
-        assertEq(prompt, "What is a good use case for on-chain AI?");
+        assertEq(prompt_value, "What is a good use case for on-chain AI?");
         assertEq(string(output), "");
     }
 
