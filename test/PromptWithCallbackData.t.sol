@@ -88,16 +88,16 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
 
     function test_OAOInteraction() public {
         vm.expectRevert("insufficient fee");
-        prompt.calculateAIResult(50, "Generate image of bitcoin");
+        prompt.calculateAIResult(STABLE_DIFUSION_ID, SD_PROMPT);
 
         vm.expectEmit(false, false, false, false);
-        emit promptRequest(3847, address(this), 50,  "Generate image of bitcoin");
-        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(50)}(50, "Generate image of bitcoin");
+        emit promptRequest(3847, address(this), STABLE_DIFUSION_ID, SD_PROMPT);
+        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
         
         (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
-        assertEq(modelId, 50);
+        assertEq(modelId, STABLE_DIFUSION_ID);
         assertEq(sender, address(this));
-        assertEq(prompt_value, "Generate image of bitcoin");
+        assertEq(string(prompt_value), SD_PROMPT);
         assertEq(string(output), "");
 
     }
@@ -106,7 +106,7 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         vm.expectRevert(); //TODO: add revert information
         prompt.aiOracleCallback(3847, "test", "");
 
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(50)}(50, "What is a good use case for on-chain AI?");
+        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
 
         vm.startPrank(OAO_PROXY);
         prompt.aiOracleCallback(requestId, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j", abi.encode(tokenId));
@@ -116,7 +116,7 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
     // /// @notice Tests the behaviour of the callback after the update of the on-chain result.
     // /// @dev After the challenge period if the result is updated, the callback will be called.
     function test_CallbackAfterUpdate() public {
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(50)}(50, "What is a good use case for on-chain AI?");
+        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
 
         // first we need to execute callback
         // then we update the result

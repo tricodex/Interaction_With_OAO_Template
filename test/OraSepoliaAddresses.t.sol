@@ -6,4 +6,5 @@ abstract contract OraSepoliaAddresses {
     uint8 internal STABLE_DIFUSION_ID = 50;
     uint8 internal LLAMA_ID = 11;
     uint8 internal GROK_ID = 9;
+    string internal SD_PROMPT = "Generate image of bitcoin";
 }
