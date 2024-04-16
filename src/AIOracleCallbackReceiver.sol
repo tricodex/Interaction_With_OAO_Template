@@ -35,6 +35,7 @@ abstract contract AIOracleCallbackReceiver {
      */
     function aiOracleCallback(uint256 requestId, bytes calldata output, bytes calldata callbackData) external virtual;
 
+
     function isFinalized(uint256 requestId) external view returns (bool) {
         return aiOracle.isFinalized(requestId);
     }
