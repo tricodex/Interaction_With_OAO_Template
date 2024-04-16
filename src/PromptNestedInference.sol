@@ -20,7 +20,8 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     event promptRequest(
         uint256 requestId,
         address sender, 
-        uint256 modelId,
+        uint256 model1Id,
+        uint256 model2Id,
         string prompt
     );
 
@@ -31,7 +32,7 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
         bytes output;
     }
 
-    address owner;
+    address public owner;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner");
@@ -79,9 +80,9 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
 
         //if callbackData is not empty decode it and call another inference
         if(callbackData.length != 0){
-            uint256 model2Id = abi.decode(callbackData, (uint256));
+            (uint256 model2Id, string memory prompt2) = abi.decode(callbackData, (uint256, string));
             aiOracle.requestCallback{value: msg.value}(
-                model2Id, request.input, address(this), callbackGasLimit[model2Id], ""
+                model2Id, bytes(prompt2), address(this), callbackGasLimit[model2Id], ""
             );
         }
 
@@ -95,16 +96,17 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
 
     /// @notice main point of interaction with OAO
     /// @dev aiOracle.requestCallback sends request to OAO
-    function calculateAIResult(uint256 model1Id, uint256 model2Id, string calldata prompt) payable external {
-        bytes memory input = bytes(prompt);
+    function calculateAIResult(uint256 model1Id, uint256 model2Id, string calldata model1Prompt) payable external returns (uint256) {
+        bytes memory input = bytes(model1Prompt);
         // we do not need to set the callbackData in this example
         uint256 requestId = aiOracle.requestCallback{value: msg.value}(
-            model1Id, input, address(this), callbackGasLimit[model1Id], abi.encode(model2Id)
+            model1Id, input, address(this), callbackGasLimit[model1Id], abi.encode(model2Id, model1Prompt)
         );
         AIOracleRequest storage request = requests[requestId];
         request.input = input;
         request.sender = msg.sender;
         request.modelId = model1Id;
-        emit promptRequest(requestId, msg.sender, model1Id, prompt);
+        emit promptRequest(requestId, msg.sender, model1Id, model2Id, model1Prompt);
+        return requestId;
     }
 }

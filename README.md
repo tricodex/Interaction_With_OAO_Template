@@ -20,7 +20,7 @@ source .env
 <p>
 
 ```bash
-forge script script/Prompt.s.sol --rpc-url $SEPOLIA_RPC --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY
+forge script script/Prompt.s.sol --rpc-url $RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY
 ```
 
 Same can be done for other contracts.

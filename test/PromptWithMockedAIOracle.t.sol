@@ -58,7 +58,7 @@ contract PromptWithMockedAIOracleTest is Test, OraSepoliaAddresses, IERC721Recei
     }
 
     function setUp() public {
-        rpc = vm.envString("SEPOLIA_RPC");
+        rpc = vm.envString("RPC_URL");
         forkId = vm.createSelectFork(rpc);
         aiOracle = new MockOAO();
         prompt = new PromptWithCallbackData(IAIOracle(address(aiOracle)));
@@ -118,8 +118,8 @@ contract PromptWithMockedAIOracleTest is Test, OraSepoliaAddresses, IERC721Recei
         assertEq(image, "test_output");
     }
 
-    // // /// @notice Tests the behaviour of the callback after the update of the on-chain result.
-    // // /// @dev After the challenge period if the result is updated, the callback will be called.
+    /// @notice Tests the behaviour of the callback after the update of the on-chain result.
+    /// @dev After the challenge period if the result is updated, the callback will be called.
     function test_CallbackAfterUpdate() public {
         (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
         aiOracle.invokeCallback(requestId, "test_output");

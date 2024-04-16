@@ -2,10 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2, Vm} from "forge-std/Test.sol";
-import {PromptWithCallbackData} from "../src/PromptWithCallbackData.sol";
+import {PromptNestedInference} from "../src/PromptNestedInference.sol";
 import {IAIOracle} from "../src/interfaces/IAIOracle.sol";
 import {OraSepoliaAddresses} from "./OraSepoliaAddresses.t.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
 
 /**
@@ -25,11 +24,12 @@ import "forge-std/console.sol";
  * 5. do all the tests on all the supported models
 */
 
-contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receiver {
+contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
     event promptRequest(
         uint256 requestId,
         address sender, 
-        uint256 modelId,
+        uint256 model1Id,
+        uint256 model2Id,
         string prompt
     );
 
@@ -41,24 +41,14 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         bytes callbackData
     );
 
-    PromptWithCallbackData prompt;
+    PromptNestedInference prompt;
     string rpc;
     uint256 forkId;
-
-    ///@notice implementing this method to be able to receive ERC721 token
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external returns (bytes4){
-        return IERC721Receiver.onERC721Received.selector;
-    }
 
     function setUp() public {
         rpc = vm.envString("RPC_URL");
         forkId = vm.createSelectFork(rpc);
-        prompt = new PromptWithCallbackData(IAIOracle(OAO_PROXY));
+        prompt = new PromptNestedInference(IAIOracle(OAO_PROXY));
     }
 
     function test_SetUp() public {
@@ -88,46 +78,30 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
 
     function test_OAOInteraction() public {
         vm.expectRevert("insufficient fee");
-        prompt.calculateAIResult(STABLE_DIFUSION_ID, SD_PROMPT);
+        prompt.calculateAIResult(STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
 
         vm.expectEmit(false, false, false, false);
-        emit promptRequest(3847, address(this), STABLE_DIFUSION_ID, SD_PROMPT);
-        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        emit promptRequest(3847, address(this), STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
+        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
         
         (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
         assertEq(modelId, STABLE_DIFUSION_ID);
         assertEq(sender, address(this));
         assertEq(string(prompt_value), SD_PROMPT);
         assertEq(string(output), "");
-
     }
 
     function test_OAOCallback() public {
-        vm.expectRevert(); //TODO: add revert information
+        vm.expectRevert(); //UnauthorizedCallbackSource
         prompt.aiOracleCallback(3847, "test", "");
 
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
 
         vm.startPrank(OAO_PROXY);
-        prompt.aiOracleCallback(requestId, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j", abi.encode(tokenId));
+        prompt.aiOracleCallback(requestId, "test", "");
         vm.stopPrank();
-    }
 
-    // /// @notice Tests the behaviour of the callback after the update of the on-chain result.
-    // /// @dev After the challenge period if the result is updated, the callback will be called.
-    function test_CallbackAfterUpdate() public {
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
-
-        // first we need to execute callback
-        // then we update the result
-        // then callback will be called again, as the concequence of the update
-        vm.startPrank(OAO_PROXY);
-        prompt.aiOracleCallback(requestId, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j", abi.encode(tokenId));
-        
-        //we need to wait for the Opml to callback with the result
-        vm.expectRevert("output not uploaded");
-        prompt.updateResult(requestId);
-        
-        vm.stopPrank();
+        (,,,bytes memory output) = prompt.requests(requestId);
+        assertNotEq(output, "");
     }
 }

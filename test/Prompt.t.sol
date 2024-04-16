@@ -45,7 +45,7 @@ contract PromptTest is Test, OraSepoliaAddresses {
     uint256 forkId;
 
     function setUp() public {
-        rpc = vm.envString("SEPOLIA_RPC");
+        rpc = vm.envString("RPC_URL");
         forkId = vm.createSelectFork(rpc);
         prompt = new TestPrompt(IAIOracle(OAO_PROXY));
     }
