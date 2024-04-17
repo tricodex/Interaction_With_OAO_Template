@@ -9,6 +9,7 @@ contract MockOAO is IAIOracle {
     uint256 lastRequest;
     mapping(uint256 => AICallbackRequestData) public requests;
     uint256 public gasPrice;
+    address constant public server = 0xf5aeB5A4B35be7Af7dBfDb765F99bCF479c917BD;
 
     struct AICallbackRequestData{
         address account;

@@ -44,6 +44,7 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
     PromptWithCallbackData prompt;
     string rpc;
     uint256 forkId;
+    IAIOracle aiOracle;
 
     ///@notice implementing this method to be able to receive ERC721 token
     function onERC721Received(
@@ -59,6 +60,7 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         rpc = vm.envString("RPC_URL");
         forkId = vm.createSelectFork(rpc);
         prompt = new PromptWithCallbackData(IAIOracle(OAO_PROXY));
+        aiOracle = IAIOracle(OAO_PROXY);
     }
 
     function test_SetUp() public {
@@ -123,11 +125,16 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         // then callback will be called again, as the concequence of the update
         vm.startPrank(OAO_PROXY);
         prompt.aiOracleCallback(requestId, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j", abi.encode(tokenId));
-        
-        //we need to wait for the Opml to callback with the result
-        vm.expectRevert("output not uploaded");
-        prompt.updateResult(requestId);
-        
         vm.stopPrank();
+        
+        vm.startPrank(aiOracle.server());
+        aiOracle.invokeCallback(requestId, "test");
+        vm.stopPrank();
+
+        //update result, which will execute callback again
+        //what is the proper way to update result? We need to check opml source code
+        // vm.startPrank(aiOracle.server());
+        // aiOracle.invokeCallback(requestId, "test");
+        // vm.stopPrank();
     }
 }

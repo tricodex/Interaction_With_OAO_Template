@@ -44,4 +44,8 @@ interface IAIOracle {
     function isFinalized(uint256 requestId) external view returns (bool);
     
     function updateResult(uint256 requestId) external;
+
+    function server() external view returns (address);
+
+    function invokeCallback(uint256 requestId, bytes calldata output) external;
 }
