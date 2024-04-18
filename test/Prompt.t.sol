@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2, Vm} from "forge-std/Test.sol";
-import {TestPrompt} from "../src/test/TestPrompt.sol";
+import {Prompt} from "../src/Prompt.sol";
 import {IAIOracle} from "../src/interfaces/IAIOracle.sol";
 import {OraSepoliaAddresses} from "./OraSepoliaAddresses.t.sol";
 import "forge-std/console.sol";
@@ -40,21 +40,21 @@ contract PromptTest is Test, OraSepoliaAddresses {
         bytes callbackData
     );
 
-    TestPrompt prompt;
+    Prompt prompt;
     string rpc;
     uint256 forkId;
 
     function setUp() public {
         rpc = vm.envString("RPC_URL");
         forkId = vm.createSelectFork(rpc);
-        prompt = new TestPrompt(IAIOracle(OAO_PROXY));
+        prompt = new Prompt(IAIOracle(OAO_PROXY));
     }
 
     function test_SetUp() public {
         assertNotEq(address(prompt), address(0));
         assertEq(prompt.owner(), address(this));
         assertEq(address(prompt.aiOracle()), OAO_PROXY);
-        assertEq(prompt.callbackGasLimit(STABLE_DIFUSION_ID), 500_000);
+        assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
         assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
@@ -91,7 +91,7 @@ contract PromptTest is Test, OraSepoliaAddresses {
     }
 
     function test_OAOCallback() public {
-        vm.expectRevert(); //TODO: add revert information
+        vm.expectRevert(); //UnauthorizedCallbackSource
         prompt.aiOracleCallback(3847, "test", "");
 
         uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(11)}(11, "What is a good use case for on-chain AI?");

@@ -1,6 +1,5 @@
-// SampleContract.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import "./interfaces/IOpml.sol";
 import "./interfaces/IAIOracle.sol";

@@ -22,7 +22,8 @@ import "forge-std/console.sol";
     - need to wait few blocks for the OPML to finish computation
     - mock the output and call method directly
     - impersonate the caller and check the modifier (only OAO should be able to call)
- * 5. do all the tests on all the supported models
+ * 5. check the multiple callback scenario
+    - test what happens when the result updates due to the challenge
 */
 
 contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receiver {
@@ -67,7 +68,7 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         assertNotEq(address(prompt), address(0));
         assertEq(prompt.owner(), address(this));
         assertEq(address(prompt.aiOracle()), OAO_PROXY);
-        assertEq(prompt.callbackGasLimit(STABLE_DIFUSION_ID), 500_000);
+        assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
         assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
@@ -90,14 +91,14 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
 
     function test_OAOInteraction() public {
         vm.expectRevert("insufficient fee");
-        prompt.calculateAIResult(STABLE_DIFUSION_ID, SD_PROMPT);
+        prompt.calculateAIResult(STABLE_DIFFUSION_ID, SD_PROMPT);
 
         vm.expectEmit(false, false, false, false);
-        emit promptRequest(3847, address(this), STABLE_DIFUSION_ID, SD_PROMPT);
-        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        emit promptRequest(3847, address(this), STABLE_DIFFUSION_ID, SD_PROMPT);
+        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID)}(STABLE_DIFFUSION_ID, SD_PROMPT);
         
         (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
-        assertEq(modelId, STABLE_DIFUSION_ID);
+        assertEq(modelId, STABLE_DIFFUSION_ID);
         assertEq(sender, address(this));
         assertEq(string(prompt_value), SD_PROMPT);
         assertEq(string(output), "");
@@ -105,36 +106,33 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
     }
 
     function test_OAOCallback() public {
-        vm.expectRevert(); //TODO: add revert information
+        vm.expectRevert(); //UnauthorizedCallbackSource
         prompt.aiOracleCallback(3847, "test", "");
 
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID)}(STABLE_DIFFUSION_ID, SD_PROMPT);
 
         vm.startPrank(OAO_PROXY);
         prompt.aiOracleCallback(requestId, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j", abi.encode(tokenId));
         vm.stopPrank();
     }
 
-    // /// @notice Tests the behaviour of the callback after the update of the on-chain result.
-    // /// @dev After the challenge period if the result is updated, the callback will be called.
+    /// @notice Tests the behaviour of the callback after the update of the on-chain result.
+    /// @dev After the challenge period if the result is updated, the callback will be called.
     function test_CallbackAfterUpdate() public {
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID)}(STABLE_DIFFUSION_ID, SD_PROMPT);
 
-        // first we need to execute callback
-        // then we update the result
-        // then callback will be called again, as the concequence of the update
         vm.startPrank(OAO_PROXY);
         prompt.aiOracleCallback(requestId, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j", abi.encode(tokenId));
-        vm.stopPrank();
         
-        vm.startPrank(aiOracle.server());
-        aiOracle.invokeCallback(requestId, "test");
-        vm.stopPrank();
+        (string memory image, ) = prompt.metadataStorage(tokenId);
+        assertEq(image, "QmaD2WSUGxouY6yTnbfGoX2sezN6QktUriCczDTPbzhC9j");
 
-        //update result, which will execute callback again
-        //what is the proper way to update result? We need to check opml source code
-        // vm.startPrank(aiOracle.server());
-        // aiOracle.invokeCallback(requestId, "test");
-        // vm.stopPrank();
+        //let's pretend that the result was updated into "updated_result" and callback again.
+        prompt.aiOracleCallback(requestId, "updated_result", abi.encode(tokenId));
+        
+        (image, ) = prompt.metadataStorage(tokenId);
+        assertEq(image, "updated_result");
+        
+        vm.stopPrank();
     }
 }

@@ -1,11 +1,13 @@
-// SampleContract.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import "./interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiver.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
+/// @notice Contract that uses OAO for image generation
+/// @dev PromptWithCallbackData implements AI generated NFT collection
+/// @dev Stable Diffusion model generates metadata for ERC721 tokens
 contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
 
     event promptsUpdated(
@@ -31,7 +33,7 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
     }
 
     struct TokenMetadata {
-        string image; //CID of the image on ipfs
+        string image;
         string prompt;
     }
 
@@ -56,11 +58,13 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
     /// @notice Initialize the contract, binding it to a specified AIOracle.
     constructor(IAIOracle _aiOracle) AIOracleCallbackReceiver(_aiOracle) ERC721("On-chain AI Oracle", "OAO"){
         owner = msg.sender;
-        callbackGasLimit[50] = 500_000; // SD 500k
-        callbackGasLimit[11] = 5_000_000; // llama
-        callbackGasLimit[9] = 5_000_000; // grok
+        callbackGasLimit[50] = 500_000; // Stable Diffusion
+        callbackGasLimit[11] = 5_000_000; // Llama
+        callbackGasLimit[9] = 5_000_000; // Grok
     }
 
+    /// @notice sets the callback gas limit for a model
+    /// @dev only owner can set the gas limit
     function setCallbackGasLimit(uint256 modelId, uint64 gasLimit) external onlyOwner {
         callbackGasLimit[modelId] = gasLimit;
     }
@@ -68,10 +72,15 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
     // uint256: modelID => (string: prompt => string: output)
     mapping(uint256 => mapping(string => string)) public prompts;
 
+    /// @notice returns the output for the specified model and prompt
     function getAIResult(uint256 modelId, string calldata prompt) external view returns (string memory) {
         return prompts[modelId][prompt];
     }
 
+    /// @notice OAO executes this method after it finishes with computation
+    /// @param requestId id of the request 
+    /// @param output result of the OAO computation
+    /// @param callbackData callback data is id of the ERC721 token. OAO will generate image and assign it to the token.
     function aiOracleCallback(uint256 requestId, bytes calldata output, bytes calldata callbackData) external override onlyAIOracleCallback() {
         AIOracleRequest storage request = requests[requestId];
         require(request.sender != address(0), "request not exists");
@@ -84,6 +93,7 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
         emit promptsUpdated(requestId, request.modelId, string(request.input), string(output), callbackData);
     }
 
+    /// @notice estimating fee that is spent by OAO
     function estimateFee(uint256 modelId) public view returns (uint256) {
         return aiOracle.estimateFee(modelId, callbackGasLimit[modelId]);
     }
@@ -95,10 +105,8 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
         _safeMint(msg.sender, nextTokenId);
     }
 
-    function updateResult(uint256 requestId) external {
-        aiOracle.updateResult(requestId);
-    }
-
+    /// @notice function that interacts with OAO
+    /// @dev tokenId of the minted token is sent as a callback data to requestCallback function
     function calculateAIResult(uint256 modelId, string calldata prompt) payable external returns (uint256, uint256) {
         bytes memory input = bytes(prompt);
         mint();

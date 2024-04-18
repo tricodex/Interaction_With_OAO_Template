@@ -21,7 +21,9 @@ import "forge-std/console.sol";
     - need to wait few blocks for the OPML to finish computation
     - mock the output and call method directly
     - impersonate the caller and check the modifier (only OAO should be able to call)
- * 5. do all the tests on all the supported models
+ * 5. check the nested inference
+    - pass the fee for the second inference to the callback
+    - check that the result is non-zero value
 */
 
 contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
@@ -55,7 +57,7 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
         assertNotEq(address(prompt), address(0));
         assertEq(prompt.owner(), address(this));
         assertEq(address(prompt.aiOracle()), OAO_PROXY);
-        assertEq(prompt.callbackGasLimit(STABLE_DIFUSION_ID), 500_000);
+        assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
         assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
@@ -78,14 +80,14 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
 
     function test_OAOInteraction() public {
         vm.expectRevert("insufficient fee");
-        prompt.calculateAIResult(STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
+        prompt.calculateAIResult(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
 
         vm.expectEmit(false, false, false, false);
-        emit promptRequest(3847, address(this), STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
-        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
+        emit promptRequest(3847, address(this), STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
+        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
         
         (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
-        assertEq(modelId, STABLE_DIFUSION_ID);
+        assertEq(modelId, STABLE_DIFFUSION_ID);
         assertEq(sender, address(this));
         assertEq(string(prompt_value), SD_PROMPT);
         assertEq(string(output), "");
@@ -95,10 +97,10 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
         vm.expectRevert(); //UnauthorizedCallbackSource
         prompt.aiOracleCallback(3847, "test", "");
 
-        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFUSION_ID, LLAMA_ID, SD_PROMPT);
+        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
 
         vm.startPrank(OAO_PROXY);
-        prompt.aiOracleCallback(requestId, "test", "");
+        prompt.aiOracleCallback{value: prompt.estimateFee(LLAMA_ID)}(requestId, "test", abi.encode(LLAMA_ID, SD_PROMPT));
         vm.stopPrank();
 
         (,,,bytes memory output) = prompt.requests(requestId);

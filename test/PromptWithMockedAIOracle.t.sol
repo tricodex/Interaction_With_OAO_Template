@@ -68,7 +68,7 @@ contract PromptWithMockedAIOracleTest is Test, OraSepoliaAddresses, IERC721Recei
         assertNotEq(address(prompt), address(0));
         assertEq(prompt.owner(), address(this));
         assertEq(address(prompt.aiOracle()), address(aiOracle));
-        assertEq(prompt.callbackGasLimit(STABLE_DIFUSION_ID), 500_000);
+        assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
         assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
@@ -91,25 +91,25 @@ contract PromptWithMockedAIOracleTest is Test, OraSepoliaAddresses, IERC721Recei
 
     function test_OAOInteraction() public {
         // vm.expectRevert("insufficient fee");
-        // prompt.calculateAIResult(STABLE_DIFUSION_ID, SD_PROMPT);
+        // prompt.calculateAIResult(STABLE_DIFFUSION_ID, SD_PROMPT);
 
         vm.expectEmit(false, false, false, false);
-        emit promptRequest(3847, address(this), STABLE_DIFUSION_ID, SD_PROMPT);
-        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        emit promptRequest(3847, address(this), STABLE_DIFFUSION_ID, SD_PROMPT);
+        (uint256 requestId,) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID)}(STABLE_DIFFUSION_ID, SD_PROMPT);
         // aiOracle.invokeCallback(requestId, bytes("test"));
 
         (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
-        assertEq(modelId, STABLE_DIFUSION_ID);
+        assertEq(modelId, STABLE_DIFFUSION_ID);
         assertEq(sender, address(this));
         assertEq(string(prompt_value), SD_PROMPT);
         assertEq(string(output), "");
     }
 
     function test_OAOCallback() public {
-        vm.expectRevert();
+        vm.expectRevert(); //UnauthorizedCallbackSource
         prompt.aiOracleCallback(3847, "test", "");
 
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID)}(STABLE_DIFFUSION_ID, SD_PROMPT);
         
         aiOracle.invokeCallback(requestId, "test_output");
 
@@ -121,16 +121,14 @@ contract PromptWithMockedAIOracleTest is Test, OraSepoliaAddresses, IERC721Recei
     /// @notice Tests the behaviour of the callback after the update of the on-chain result.
     /// @dev After the challenge period if the result is updated, the callback will be called.
     function test_CallbackAfterUpdate() public {
-        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFUSION_ID)}(STABLE_DIFUSION_ID, SD_PROMPT);
+        (uint256 requestId, uint256 tokenId) = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID)}(STABLE_DIFFUSION_ID, SD_PROMPT);
         aiOracle.invokeCallback(requestId, "test_output");
 
-        (string memory image, ) = prompt.metadataStorage(requestId);
+        (string memory image, ) = prompt.metadataStorage(tokenId);
         assertEq(image, "test_output");
 
-        vm.startPrank(address(aiOracle));
         aiOracle.invokeCallback(requestId, "result_updated");
         (image, ) = prompt.metadataStorage(requestId);
         assertEq(image, "result_updated");
-        vm.stopPrank();
     }
 }

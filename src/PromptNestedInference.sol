@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.13;
 
 import "./interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiverPayable.sol";
 
-/// @notice User interfacing contract that interacts with OAO
-/// @author ora.io
-/// @dev Prompt contract inherits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
+/// @notice Contract that requests double inference from OAO. 
+/// @dev First inference is initiated through calculateAIResult method, the second one is requested from the callback.
 contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     
     event promptsUpdated(
@@ -48,9 +47,9 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     /// @notice Initialize the contract, binding it to a specified AIOracle.
     constructor(IAIOracle _aiOracle) AIOracleCallbackReceiverPayable(_aiOracle) {
         owner = msg.sender;
-        callbackGasLimit[50] = 500_000; // SD 500k
-        callbackGasLimit[11] = 5_000_000; // llama
-        callbackGasLimit[9] = 5_000_000; // grok
+        callbackGasLimit[50] = 500_000; // Stable Diffusion
+        callbackGasLimit[11] = 5_000_000; // Llama
+        callbackGasLimit[9] = 5_000_000; // Grok
     }
 
     /// @notice sets the callback gas limit for a model
@@ -62,17 +61,16 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     /// @dev uint256: modelID => (string: prompt => string: output)
     mapping(uint256 => mapping(string => string)) public prompts;
 
-    /// @notice returns the output for a specific model and prompt
+    /// @notice returns the output for the specified model and prompt
     function getAIResult(uint256 modelId, string calldata prompt) external view returns (string memory) {
         return prompts[modelId][prompt];
     }
 
     /// @notice OAO executes this method after it finishes with computation
-    /// @param requestId requestId 
+    /// @param requestId id of the request  
     /// @param output result of the OAO computation
-    /// @param callbackData optional data that is executed in the callback
+    /// @param callbackData Callback data is the modelId and the prompt for AI request.
     function aiOracleCallback(uint256 requestId, bytes calldata output, bytes calldata callbackData) external payable override onlyAIOracleCallback() {
-        // since we do not set the callbackData in this example, the callbackData should be empty
         AIOracleRequest storage request = requests[requestId];
         require(request.sender != address(0), "request does not exist");
         request.output = output;
@@ -95,10 +93,9 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     }
 
     /// @notice main point of interaction with OAO
-    /// @dev aiOracle.requestCallback sends request to OAO
+    /// @dev modelId and prompt for second inference are passed as the callback data.
     function calculateAIResult(uint256 model1Id, uint256 model2Id, string calldata model1Prompt) payable external returns (uint256) {
         bytes memory input = bytes(model1Prompt);
-        // we do not need to set the callbackData in this example
         uint256 requestId = aiOracle.requestCallback{value: msg.value}(
             model1Id, input, address(this), callbackGasLimit[model1Id], abi.encode(model2Id, model1Prompt)
         );
