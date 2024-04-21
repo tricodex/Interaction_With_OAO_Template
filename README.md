@@ -25,3 +25,9 @@ forge script script/Prompt.s.sol --rpc-url $RPC_URL --broadcast --verify --ether
 
 Same can be done for other contracts.
 
+## Callback Gas Estimation
+In the case of Prompt contract, gas required for the callback will change depending on the result size. To estimate the amount of gas necessary for the callback, check `test/EstimateGasLimit.t.sol` and modify result size and modelId as you wish (keep in mind that Llama model will return result in text format, while Stable diffusion will return fixed size CID for ipfs). Then run the test.
+```bash
+forge test --match-contract EstimateGasLimitTest -vv
+```
+You should see estimated gas in the console.
