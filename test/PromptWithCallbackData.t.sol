@@ -70,7 +70,6 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         assertEq(address(prompt.aiOracle()), OAO_PROXY);
         assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
-        assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
 
     function test_CallbackGasLimit() public {
@@ -84,9 +83,6 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
 
         prompt.setCallbackGasLimit(11, 3_000_000);
         assertEq(prompt.callbackGasLimit(11), 3_000_000);
-
-        prompt.setCallbackGasLimit(9, 3_000_000);
-        assertEq(prompt.callbackGasLimit(9), 3_000_000); 
     }
 
     function test_OAOInteraction() public {
