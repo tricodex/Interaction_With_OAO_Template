@@ -9,6 +9,9 @@ Clone the repository and install submodules.
 ```bash
 git clone git@github.com:ora-io/Interaction_With_OAO_Template --recursive
 ```
+
+> Note: make sure to update all submodules to the latest version. 
+
 ## Test Guide
 To execute tests run `forge test`, or `forge test -vvvv` for more info.
 ### Prompt.t.sol 
