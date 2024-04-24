@@ -7,7 +7,7 @@ This repository contains a simple template for interaction with OAO (On-chain AI
 ## Setup
 Clone the repository and install submodules.
 ```bash
-git clone -b git@github.com:ora-io/Interaction_With_OAO_Template --recursive
+git clone git@github.com:ora-io/Interaction_With_OAO_Template --recursive
 ```
 ## Test Guide
 To execute tests run `forge test`, or `forge test -vvvv` for more info.
