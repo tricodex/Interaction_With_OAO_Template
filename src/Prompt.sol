@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IAIOracle.sol";
-import "./AIOracleCallbackReceiver.sol";
+// import "./interfaces/IAIOracle.sol";
+// import "./AIOracleCallbackReceiver.sol";
+import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
+import {AIOracleCallbackReceiver} from "OAO/contracts/AIOracleCallbackReceiver.sol";
 
 /// @notice User interfacing contract that interacts with OAO
 /// @dev Prompt contract inherits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.

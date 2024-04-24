@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IAIOracle.sol";
-import "./AIOracleCallbackReceiver.sol";
+import "OAO/contracts/interfaces/IAIOracle.sol";
+import "OAO/contracts/AIOracleCallbackReceiver.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /// @notice Contract that uses OAO for image generation

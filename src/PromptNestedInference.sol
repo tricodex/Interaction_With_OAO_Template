@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IAIOracle.sol";
+import "OAO/contracts/interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiverPayable.sol";
 
 /// @notice Contract that requests double inference from OAO. 

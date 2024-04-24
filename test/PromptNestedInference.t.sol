@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2, Vm} from "forge-std/Test.sol";
 import {PromptNestedInference} from "../src/PromptNestedInference.sol";
-import {IAIOracle} from "../src/interfaces/IAIOracle.sol";
+import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 import {OraSepoliaAddresses} from "./OraSepoliaAddresses.t.sol";
 import "forge-std/console.sol";
 
