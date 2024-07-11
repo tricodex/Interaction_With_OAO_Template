@@ -4,6 +4,14 @@ This repository contains a simple template for interaction with OAO (On-chain AI
 - PromptWithCallbackData is an extension of Prompt, which passes callback data in the *`requestCallback`* method when calling OAO. This allows execution of arbitrary logic, after the OAO returns the result to the chain.
 - PromptDifferentModels is an extension of Prompt, which executes different actions in the callback depending on the modelId.
 
+## Setup
+Clone the repository and install submodules.
+```bash
+git clone git@github.com:ora-io/Interaction_With_OAO_Template --recursive
+```
+
+> Note: make sure to update all submodules to the latest version. 
+
 ## Test Guide
 To execute tests run `forge test`, or `forge test -vvvv` for more info.
 ### Prompt.t.sol 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IAIOracle.sol";
-import "./AIOracleCallbackReceiver.sol";
+import "OAO/contracts/interfaces/IAIOracle.sol";
+import "OAO/contracts/AIOracleCallbackReceiver.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 /// @notice Contract that uses OAO for image generation
@@ -60,7 +60,6 @@ contract PromptWithCallbackData is AIOracleCallbackReceiver, ERC721 {
         owner = msg.sender;
         callbackGasLimit[50] = 500_000; // Stable Diffusion
         callbackGasLimit[11] = 5_000_000; // Llama
-        callbackGasLimit[9] = 5_000_000; // Grok
     }
 
     /// @notice sets the callback gas limit for a model

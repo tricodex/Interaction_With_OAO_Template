@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IAIOracle.sol";
+import "OAO/contracts/interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiverPayable.sol";
 
 /// @notice Contract that requests double inference from OAO. 
@@ -49,7 +49,6 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
         owner = msg.sender;
         callbackGasLimit[50] = 500_000; // Stable Diffusion
         callbackGasLimit[11] = 5_000_000; // Llama
-        callbackGasLimit[9] = 5_000_000; // Grok
     }
 
     /// @notice sets the callback gas limit for a model

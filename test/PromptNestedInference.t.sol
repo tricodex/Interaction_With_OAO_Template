@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2, Vm} from "forge-std/Test.sol";
 import {PromptNestedInference} from "../src/PromptNestedInference.sol";
-import {IAIOracle} from "../src/interfaces/IAIOracle.sol";
+import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 import {OraSepoliaAddresses} from "./OraSepoliaAddresses.t.sol";
 import "forge-std/console.sol";
 
@@ -59,7 +59,6 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
         assertEq(address(prompt.aiOracle()), OAO_PROXY);
         assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
-        assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
 
     function test_CallbackGasLimit() public {
@@ -73,9 +72,6 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
 
         prompt.setCallbackGasLimit(11, 3_000_000);
         assertEq(prompt.callbackGasLimit(11), 3_000_000);
-
-        prompt.setCallbackGasLimit(9, 3_000_000);
-        assertEq(prompt.callbackGasLimit(9), 3_000_000); 
     }
 
     function test_OAOInteraction() public {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {IAIOracle} from "../interfaces/IAIOracle.sol";
+import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 
 contract MockOAO is IAIOracle {
     bytes4 constant public callbackFunctionSelector = 0xb0347814;

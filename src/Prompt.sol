@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./interfaces/IAIOracle.sol";
-import "./AIOracleCallbackReceiver.sol";
+// import "./interfaces/IAIOracle.sol";
+// import "./AIOracleCallbackReceiver.sol";
+import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
+import {AIOracleCallbackReceiver} from "OAO/contracts/AIOracleCallbackReceiver.sol";
 
 /// @notice User interfacing contract that interacts with OAO
 /// @dev Prompt contract inherits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
@@ -48,7 +50,6 @@ contract Prompt is AIOracleCallbackReceiver {
         owner = msg.sender;
         callbackGasLimit[50] = 500_000; // Stable Diffusion
         callbackGasLimit[11] = 5_000_000; // Llama
-        callbackGasLimit[9] = 5_000_000; // Grok
     }
 
     /// @notice sets the callback gas limit for a model

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2, Vm} from "forge-std/Test.sol";
 import {PromptWithCallbackData} from "../src/PromptWithCallbackData.sol";
-import {IAIOracle} from "../src/interfaces/IAIOracle.sol";
+import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 import {OraSepoliaAddresses} from "./OraSepoliaAddresses.t.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "forge-std/console.sol";
@@ -70,7 +70,6 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
         assertEq(address(prompt.aiOracle()), OAO_PROXY);
         assertEq(prompt.callbackGasLimit(STABLE_DIFFUSION_ID), 500_000);
         assertEq(prompt.callbackGasLimit(LLAMA_ID), 5_000_000);
-        assertEq(prompt.callbackGasLimit(GROK_ID), 5_000_000);
     }
 
     function test_CallbackGasLimit() public {
@@ -84,9 +83,6 @@ contract PromptWithCallbackDataTest is Test, OraSepoliaAddresses, IERC721Receive
 
         prompt.setCallbackGasLimit(11, 3_000_000);
         assertEq(prompt.callbackGasLimit(11), 3_000_000);
-
-        prompt.setCallbackGasLimit(9, 3_000_000);
-        assertEq(prompt.callbackGasLimit(9), 3_000_000); 
     }
 
     function test_OAOInteraction() public {
