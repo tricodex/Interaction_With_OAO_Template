@@ -7,7 +7,10 @@ import {OraSepoliaAddresses} from "../test/OraSepoliaAddresses.t.sol";
 import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 
 contract PromptScript is Script, OraSepoliaAddresses {
-    function setUp() public {}
+    function setUp() public {
+        // testnet sepolia address
+        OAO_PROXY = address(0x0A0f4321214BB6C7811dD8a71cF587bdaF03f0A0);
+    }
 
     function run() public {
         uint privateKey = vm.envUint("PRIVATE_KEY");
