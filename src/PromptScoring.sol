@@ -5,8 +5,8 @@ import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 import {AIOracleCallbackReceiver} from "OAO/contracts/AIOracleCallbackReceiver.sol";
 
 /// @notice User interfacing contract that interacts with OAO
-/// @dev FairLaunch contract inherits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
-contract FairLaunch is AIOracleCallbackReceiver {
+/// @dev PromptScoring contract inherits AIOracleCallbackReceiver, so that OPML nodes can callback with the result.
+contract PromptScoring is AIOracleCallbackReceiver {
     event promptsUpdated(
         uint256 requestId,
         uint256 modelId,
