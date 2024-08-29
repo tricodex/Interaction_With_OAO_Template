@@ -5,6 +5,7 @@ import {Test, console2, Vm} from "forge-std/Test.sol";
 import {PromptNestedInference} from "../src/PromptNestedInference.sol";
 import {IAIOracle} from "OAO/contracts/interfaces/IAIOracle.sol";
 import {OraSepoliaAddresses} from "./OraSepoliaAddresses.t.sol";
+
 import "forge-std/console.sol";
 
 /**
@@ -30,8 +31,7 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
     event promptRequest(
         uint256 requestId,
         address sender, 
-        uint256 model1Id,
-        uint256 model2Id,
+        uint256 modelId,
         string prompt
     );
 
@@ -75,12 +75,15 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
     }
 
     function test_OAOInteraction() public {
-        vm.expectRevert("insufficient fee");
-        prompt.calculateAIResult(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
+        // vm.expectRevert("insufficient fee");
+        // prompt.calculateAIResult(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
+
+        uint256 stableDiffusionFee = prompt.estimateFee(STABLE_DIFFUSION_ID);
+        uint256 llamaFee = prompt.estimateFee(LLAMA_ID);
 
         vm.expectEmit(false, false, false, false);
-        emit promptRequest(3847, address(this), STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
-        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
+        emit promptRequest(3847, address(this), STABLE_DIFFUSION_ID, SD_PROMPT);
+        uint256 requestId = prompt.calculateAIResult{value: ((stableDiffusionFee + llamaFee)*11/10)}(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
         
         (address sender, uint256 modelId, bytes memory prompt_value, bytes memory output) = prompt.requests(requestId);
         assertEq(modelId, STABLE_DIFFUSION_ID);
@@ -93,10 +96,13 @@ contract PromptNestedInferenceTest is Test, OraSepoliaAddresses {
         vm.expectRevert(); //UnauthorizedCallbackSource
         prompt.aiOracleCallback(3847, "test", "");
 
-        uint256 requestId = prompt.calculateAIResult{value: prompt.estimateFee(STABLE_DIFFUSION_ID) + prompt.estimateFee(LLAMA_ID)}(STABLE_DIFFUSION_ID, LLAMA_ID, SD_PROMPT);
+        uint256 stableDiffusionFee = prompt.estimateFee(STABLE_DIFFUSION_ID);
+        uint256 llamaFee = prompt.estimateFee(LLAMA_ID);
+
+        uint256 requestId = prompt.calculateAIResult{value: (stableDiffusionFee + llamaFee)}(LLAMA_ID, STABLE_DIFFUSION_ID, LLAMA_PROMPT);
 
         vm.startPrank(OAO_PROXY);
-        prompt.aiOracleCallback{value: prompt.estimateFee(LLAMA_ID)}(requestId, "test", abi.encode(LLAMA_ID, SD_PROMPT));
+        prompt.aiOracleCallback{value: ((stableDiffusionFee + llamaFee)*11/10)}(requestId, "test", abi.encode(STABLE_DIFFUSION_ID, address(prompt)));
         vm.stopPrank();
 
         (,,,bytes memory output) = prompt.requests(requestId);

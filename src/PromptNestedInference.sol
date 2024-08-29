@@ -4,10 +4,10 @@ pragma solidity ^0.8.13;
 import "OAO/contracts/interfaces/IAIOracle.sol";
 import "./AIOracleCallbackReceiverPayable.sol";
 
-/// @notice Contract that requests double inference from OAO. 
+/// @notice Contract that requests nested inference from OAO. 
 /// @dev First inference is initiated through calculateAIResult method, the second one is requested from the callback.
 contract PromptNestedInference is AIOracleCallbackReceiverPayable {
-    
+
     event promptsUpdated(
         uint256 requestId,
         uint256 modelId,
@@ -19,8 +19,7 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     event promptRequest(
         uint256 requestId,
         address sender, 
-        uint256 model1Id,
-        uint256 model2Id,
+        uint256 modelId,
         string prompt
     );
 
@@ -47,8 +46,8 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     /// @notice Initialize the contract, binding it to a specified AIOracle.
     constructor(IAIOracle _aiOracle) AIOracleCallbackReceiverPayable(_aiOracle) {
         owner = msg.sender;
-        callbackGasLimit[50] = 500_000; // Stable Diffusion
-        callbackGasLimit[11] = 5_000_000; // Llama
+        callbackGasLimit[50] = 500_000; // Stable-Diffusion
+        callbackGasLimit[11] = 5_000_000; // Llama3
     }
 
     /// @notice sets the callback gas limit for a model
@@ -59,6 +58,9 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
 
     /// @dev uint256: modelID => (string: prompt => string: output)
     mapping(uint256 => mapping(string => string)) public prompts;
+
+    /// @dev uint256 requestId => string output
+    mapping(uint256 => string) public requestOutputs;
 
     /// @notice returns the output for the specified model and prompt
     function getAIResult(uint256 modelId, string calldata prompt) external view returns (string memory) {
@@ -77,10 +79,18 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
 
         //if callbackData is not empty decode it and call another inference
         if(callbackData.length != 0){
-            (uint256 model2Id, string memory prompt2) = abi.decode(callbackData, (uint256, string));
-            aiOracle.requestCallback{value: msg.value}(
-                model2Id, bytes(prompt2), address(this), callbackGasLimit[model2Id], ""
-            );
+            (uint256 model2Id) = abi.decode(callbackData, (uint256));
+            uint256 model2Fee = estimateFee(model2Id);
+
+            (bool success, bytes memory data) = address(aiOracle).call{value: model2Fee}(abi.encodeWithSignature("requestCallback(uint256,bytes,address,uint64,bytes)", model2Id, output, address(this), callbackGasLimit[model2Id], ""));
+            require(success, "failed to call nested inference");
+
+            (uint256 rid) = abi.decode(data, (uint256));
+            AIOracleRequest storage recursiveRequest = requests[rid];
+            recursiveRequest.input = output;
+            recursiveRequest.sender = msg.sender;
+            recursiveRequest.modelId = model2Id;
+            emit promptRequest(rid, msg.sender, model2Id, "");
         }
 
         emit promptsUpdated(requestId, request.modelId, string(request.input), string(output), callbackData);
@@ -95,14 +105,16 @@ contract PromptNestedInference is AIOracleCallbackReceiverPayable {
     /// @dev modelId and prompt for second inference are passed as the callback data.
     function calculateAIResult(uint256 model1Id, uint256 model2Id, string calldata model1Prompt) payable external returns (uint256) {
         bytes memory input = bytes(model1Prompt);
-        uint256 requestId = aiOracle.requestCallback{value: msg.value}(
-            model1Id, input, address(this), callbackGasLimit[model1Id], abi.encode(model2Id, model1Prompt)
+        uint256 model1Fee = estimateFee(model1Id);
+        uint256 requestId = aiOracle.requestCallback{value: model1Fee}(
+            model1Id, input, address(this), callbackGasLimit[model1Id], abi.encode(model2Id)
         );
         AIOracleRequest storage request = requests[requestId];
         request.input = input;
         request.sender = msg.sender;
         request.modelId = model1Id;
-        emit promptRequest(requestId, msg.sender, model1Id, model2Id, model1Prompt);
+        emit promptRequest(requestId, msg.sender, model1Id, model1Prompt);
         return requestId;
     }
+
 }
